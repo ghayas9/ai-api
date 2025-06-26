@@ -11,6 +11,13 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.get("/", async (req, res) => {
+    res.json({
+        success: true,
+        message: "server is working"
+    })
+})
+
 app.use("/api/v1")
 
 // Helper function to fetch image from URL and convert to blob
