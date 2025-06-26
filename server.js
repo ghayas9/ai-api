@@ -18,7 +18,9 @@ app.get("/", async (req, res) => {
     })
 })
 
-app.use("/api/v1")
+app.use("/api/v1", (req, res, next) => {
+    next();
+});
 
 // Helper function to fetch image from URL and convert to blob
 async function fetchImageAsBlob(imageUrl) {
