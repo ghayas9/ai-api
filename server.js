@@ -117,6 +117,51 @@ app.post('/bg-remover', async (req, res) => {
     }
 });
 
+app.post('/image/generate', async (req, res) => {
+    try {
+        // Check if image URL was provided
+        if (!req.body.prompt) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide an prompt in the request body'
+            });
+        }
+
+        const { prompt } = req.body;
+
+
+
+
+
+        // Dynamic import for ES modules in CommonJS
+        const { Client } = await import('@gradio/client');
+
+        const client = await Client.connect("black-forest-labs/FLUX.1-schnell", {
+            hf_token: HUGGINGFACE_API_KEY
+        });
+
+
+        const result = await client.predict("/infer", {
+            prompt,
+            seed: 0,
+        });
+
+        res.json({
+            success: true,
+            data: result,
+            message: 'Image Generated successfully'
+        });
+
+    } catch (err) {
+        console.error('Error:', err);
+        res.status(500).json({
+            success: false,
+            error: err.message,
+            message: 'Image Generate failed'
+        });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
