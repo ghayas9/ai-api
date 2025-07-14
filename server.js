@@ -170,7 +170,7 @@ app.post('/3d/generate', async (req, res) => {
             });
         }
 
-        const { url , images } = req.body;
+        const { url, images } = req.body;
 
         try {
             new URL(url);
