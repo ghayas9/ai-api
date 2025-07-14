@@ -130,9 +130,6 @@ app.post('/image/generate', async (req, res) => {
         const { prompt } = req.body;
 
 
-
-
-
         // Dynamic import for ES modules in CommonJS
         const { Client } = await import('@gradio/client');
 
@@ -158,6 +155,71 @@ app.post('/image/generate', async (req, res) => {
             success: false,
             error: err.message,
             message: 'Image Generate failed'
+        });
+    }
+});
+
+app.post('/3d/generate', async (req, res) => {
+    try {
+
+        if (!req.body.url) {
+            return res.status(400).json({
+                success: false,
+                error: 'No image URL provided',
+                message: 'Please provide an url in the request body'
+            });
+        }
+
+        const { url , images } = req.body;
+
+        try {
+            new URL(url);
+        } catch (urlError) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid URL format',
+                message: 'Please provide a valid image URL'
+            });
+        }
+
+
+        const { Client } = await import('@gradio/client');
+        const client = await Client.connect("trellis-community/TRELLIS", {
+            hf_token: HUGGINGFACE_API_KEY
+        });
+
+        // 2. Start session (required for ZeroGPU)
+        await client.predict("/start_session", {});
+        const response = await fetch(url);
+        const imageBlob = await response.blob();
+
+        const result = await client.predict("/generate_and_extract_glb", {
+            image: imageBlob,
+            multiimages: [],
+            seed: 0,
+            ss_guidance_strength: 7.5,
+            ss_sampling_steps: 12,
+            slat_guidance_strength: 3,
+            slat_sampling_steps: 12,
+            multiimage_algo: "stochastic",
+            mesh_simplify: 0.95,
+            texture_size: 1024
+        });
+        console.log(result.data);
+
+
+        res.json({
+            success: true,
+            data: result.data,
+            message: '3D model generated successfully'
+        });
+
+    } catch (err) {
+        console.error('Error generating 3D model:', err);
+        res.status(500).json({
+            success: false,
+            error: err.message || JSON.stringify(err),
+            message: '3D model generation failed'
         });
     }
 });
