@@ -360,6 +360,69 @@ app.post('/image/edit', async (req, res) => {
     }
 });
 
+app.post('/image/colorize', async (req, res) => {
+    try {
+        // Check if image URL was provided
+        if (!req.body.url) {
+            return res.status(400).json({
+                success: false,
+                error: 'No image URL provided',
+                message: 'Please provide an image URL in the request body'
+            });
+        }
+
+        const { url } = req.body;
+
+        // Validate URL format
+        try {
+            new URL(url);
+        } catch (urlError) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid URL format',
+                message: 'Please provide a valid image URL'
+            });
+        }
+
+        // Fetch image from URL and convert to blob
+        console.log('Fetching image from URL for colorization...');
+        const imageBlob = await fetchImageAsBlob(url);
+
+        // Dynamic import for ES modules in CommonJS
+        const { Client } = await import('@gradio/client');
+
+        // Connect to the old photo restoration client
+        console.log('Connecting to old photo restoration service...');
+        const client = await Client.connect("Greff3/old_photo_restoration", {
+            hf_token: HUGGINGFACE_API_KEY
+        });
+
+        // Make the prediction for old photo restoration/colorization
+        console.log('Processing image for colorization/restoration...');
+        const result = await client.predict("/predict", {
+            image: imageBlob
+        });
+
+        // Return the result as JSON
+        res.json({
+            success: true,
+            data: result?.data,
+            parameters: {
+                source_url: url
+            },
+            message: 'Image colorized/restored successfully'
+        });
+
+    } catch (err) {
+        console.error('Error in image colorization:', err);
+        res.status(500).json({
+            success: false,
+            error: err.message,
+            message: 'Image colorization failed'
+        });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
