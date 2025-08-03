@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const cors = require("cors");
 const { HUGGINGFACE_API_KEY, PORT } = require('./config');
+const image = require("./app/service/image.service")
 
 app.use(cors({
     origin: "*"
@@ -18,9 +19,7 @@ app.get("/", async (req, res) => {
     })
 })
 
-app.use("/api/v1", (req, res, next) => {
-    next();
-});
+app.use("/api/v1/image", image)
 
 // Helper function to fetch image from URL and convert to blob
 async function fetchImageAsBlob(imageUrl) {
@@ -42,6 +41,28 @@ async function fetchImageAsBlob(imageUrl) {
         return blob;
     } catch (error) {
         throw new Error(`Error fetching image from URL: ${error.message}`);
+    }
+}
+
+async function fetchAudioAsBlob(audioUrl) {
+    try {
+        const response = await fetch(audioUrl);
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch audio: ${response.status} ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.startsWith('audio/')) {
+            throw new Error('URL does not point to a valid audio file');
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const blob = new Blob([arrayBuffer], { type: contentType });
+
+        return blob;
+    } catch (error) {
+        throw new Error(`Error fetching audio from URL: ${error.message}`);
     }
 }
 
@@ -419,6 +440,282 @@ app.post('/image/colorize', async (req, res) => {
             success: false,
             error: err.message,
             message: 'Image colorization failed'
+        });
+    }
+});
+
+
+app.post('/image/add/object', async (req, res) => {
+    try {
+        // Check if required fields are provided
+        if (!req.body.url) {
+            return res.status(400).json({
+                success: false,
+                error: 'No image URL provided',
+                message: 'Please provide a source image URL in the request body'
+            });
+        }
+
+        if (!req.body.prompt_source) {
+            return res.status(400).json({
+                success: false,
+                error: 'No source prompt provided',
+                message: 'Please provide a prompt_source in the request body'
+            });
+        }
+
+        if (!req.body.prompt_target) {
+            return res.status(400).json({
+                success: false,
+                error: 'No target prompt provided',
+                message: 'Please provide a prompt_target in the request body'
+            });
+        }
+
+        if (!req.body.subject_token) {
+            return res.status(400).json({
+                success: false,
+                error: 'No subject token provided',
+                message: 'Please provide a subject_token in the request body'
+            });
+        }
+
+        const {
+            url,
+            prompt_source,
+            prompt_target,
+            subject_token
+        } = req.body;
+
+        // Get parameters from request body with defaults
+        const seed_src = req.body.seed_src || 3;
+        const seed_obj = req.body.seed_obj || 3;
+        const extended_scale = req.body.extended_scale || 1;
+        const structure_transfer_step = req.body.structure_transfer_step || 0;
+        const blend_steps = req.body.blend_steps || "auto";
+        const localization_model = req.body.localization_model || "attention";
+        const use_offset = req.body.use_offset !== undefined ? req.body.use_offset : true;
+        const disable_inversion = req.body.disable_inversion !== undefined ? req.body.disable_inversion : true;
+
+        // Validate URL format
+        try {
+            new URL(url);
+        } catch (urlError) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid URL format',
+                message: 'Please provide a valid image URL'
+            });
+        }
+
+        // Fetch image from URL and convert to blob
+        console.log('Fetching image from URL for object addition...');
+        const imageBlob = await fetchImageAsBlob(url);
+
+        // Dynamic import for ES modules in CommonJS
+        const { Client } = await import('@gradio/client');
+
+        // Connect to the NVIDIA AddIt client
+        console.log('Connecting to NVIDIA AddIt service...');
+        const client = await Client.connect("nvidia/addit", {
+            hf_token: HUGGINGFACE_API_KEY
+        });
+
+        // Make the prediction for adding objects to image
+        console.log('Processing image for object addition...');
+        const result = await client.predict("/process_real_image", {
+            source_image: imageBlob,
+            prompt_source: prompt_source,
+            prompt_target: prompt_target,
+            subject_token: subject_token,
+            seed_src: seed_src,
+            seed_obj: seed_obj,
+            extended_scale: extended_scale,
+            structure_transfer_step: structure_transfer_step,
+            blend_steps: blend_steps,
+            localization_model: localization_model,
+            use_offset: use_offset,
+            disable_inversion: disable_inversion
+        });
+
+        // Return the result as JSON
+        res.json({
+            success: true,
+            data: result?.data,
+            parameters: {
+                prompt_source: prompt_source,
+                prompt_target: prompt_target,
+                subject_token: subject_token,
+                seed_src: seed_src,
+                seed_obj: seed_obj,
+                extended_scale: extended_scale,
+                structure_transfer_step: structure_transfer_step,
+                blend_steps: blend_steps,
+                localization_model: localization_model,
+                use_offset: use_offset,
+                disable_inversion: disable_inversion,
+                source_url: url
+            },
+            message: 'Object added to image successfully'
+        });
+
+    } catch (err) {
+        console.error('Error in adding object to image:', err);
+        res.status(500).json({
+            success: false,
+            error: err.message,
+            message: 'Adding object to image failed'
+        });
+    }
+});
+
+
+// POST endpoint for music generation using Facebook MusicGen
+app.get('/music/generate', async (req, res) => {
+    try {
+        // Check if description was provided
+        // if (!req.body.prompt) {
+        //     return res.status(400).json({
+        //         success: false,
+        //         error: 'No prompt provided',
+        //         message: 'Please provide a prompt for the music in the request body'
+        //     });
+        // }
+
+        // const { prompt } = req.body;
+        // const { audio_url } = req.body; // Optional audio file URL for melody conditioning
+
+        const prompt = "Memphis trap beat with a dark metallic sound"
+        const audio_url = ""
+
+        console.log('Starting music generation...');
+
+        // Dynamic import for ES modules in CommonJS
+        const { client } = await import('@gradio/client');
+
+        // Connect to the Facebook MusicGen client
+        console.log('Connecting to Facebook MusicGen...');
+        const app = await client("https://facebook-musicgen.hf.space/");
+
+        let audioBlob = null;
+
+        // If audio URL is provided, fetch it; otherwise use the default example
+        if (audio_url) {
+            try {
+                new URL(audio_url);
+                console.log('Fetching custom audio from URL...');
+                audioBlob = await fetchAudioAsBlob(audio_url);
+            } catch (urlError) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid audio URL format',
+                    message: 'Please provide a valid audio URL'
+                });
+            }
+        } else {
+            // Use the default example audio
+            console.log('Using default example audio...');
+            const response_0 = await fetch("https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav");
+            audioBlob = await response_0.blob();
+        }
+
+        // Make the prediction for music generation
+        console.log('Generating music...');
+        const result = await app.predict(0, [
+            prompt,    // string in 'Describe your music' Textbox component
+            audioBlob,      // blob in 'File' Audio component
+        ]);
+
+        console.log('Music generation completed');
+
+        // Return the result as JSON
+        res.json({
+            success: true,
+            data: result?.data,
+            message: 'Music generated successfully'
+        });
+
+    } catch (err) {
+        console.error('Error in music generation:', err);
+        res.status(500).json({
+            success: false,
+            error: err.message,
+            message: 'Music generation failed'
+        });
+    }
+});
+
+app.post('/video/generate', async (req, res) => {
+    try {
+        // Check if text/story was provided
+        if (!req.body.text) {
+            return res.status(400).json({
+                success: false,
+                error: 'No text provided',
+                message: 'Please provide a text/story in the request body'
+            });
+        }
+
+        const { text } = req.body;
+
+        // Get parameters from request body with defaults
+        const base_model_name = req.body.base_model_name || "Realistic";
+        const motion_name = req.body.motion_name || "";
+        const num_inference_steps_backend = req.body.num_inference_steps_backend || 4;
+        const randomize_seed = req.body.randomize_seed !== undefined ? req.body.randomize_seed : true;
+        const seed = req.body.seed || 42;
+        const width = req.body.width || 640;
+        const height = req.body.height || 480;
+
+        console.log('Starting video generation from story...');
+
+        // Dynamic import for ES modules in CommonJS
+        const { Client } = await import('@gradio/client');
+
+        // Connect to the Video Generator client
+        console.log('Connecting to Video Generator...');
+        const client = await Client.connect("ruslanmv/Video-Generator-from-Story", {
+            hf_token: HUGGINGFACE_API_KEY
+        });
+
+        // Make the prediction for video generation
+        console.log('Generating video from story...');
+        const result = await client.predict("/get_output_video", {
+            text: text,
+            base_model_name: base_model_name,
+            motion_name: motion_name,
+            num_inference_steps_backend: num_inference_steps_backend,
+            randomize_seed: randomize_seed,
+            seed: seed,
+            width: width,
+            height: height
+        });
+
+        console.log('Video generation completed');
+
+        // Return the result as JSON
+        res.json({
+            success: true,
+            data: result?.data,
+            parameters: {
+                text: text,
+                base_model_name: base_model_name,
+                motion_name: motion_name,
+                num_inference_steps_backend: num_inference_steps_backend,
+                randomize_seed: randomize_seed,
+                seed: seed,
+                width: width,
+                height: height
+            },
+            message: 'Video generated successfully from story'
+        });
+
+    } catch (err) {
+        console.error('Error in video generation:', err);
+        res.status(500).json({
+            success: false,
+            error: err.message,
+            message: 'Video generation failed'
         });
     }
 });

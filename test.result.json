@@ -1,0 +1,99 @@
+[
+  {
+    "stable-diffusion": [
+      [
+        {
+          "image": {
+            "path": "/tmp/gradio/c71c0add1e51fe55c505eb9c229a6043067d96ea700f47441faf32369021ba76/5b5f15a0-d198-41af-8b2e-07e613e75f3b.jpg",
+            "url": "https://stabilityai-stable-diffusion.hf.space/file=/tmp/gradio/c71c0add1e51fe55c505eb9c229a6043067d96ea700f47441faf32369021ba76/5b5f15a0-d198-41af-8b2e-07e613e75f3b.jpg",
+            "size": null,
+            "orig_name": "5b5f15a0-d198-41af-8b2e-07e613e75f3b.jpg",
+            "mime_type": null,
+            "is_stream": false,
+            "meta": {
+              "_type": "gradio.FileData"
+            }
+          },
+          "caption": null
+        },
+        {
+          "image": {
+            "path": "/tmp/gradio/aae4affbedeaf257ce81d92e014f68d082029e43b7e0b8b7bc13b0caa1b76059/c7004360-b2b2-4ca4-8a6e-0b4be993bb54.jpg",
+            "url": "https://stabilityai-stable-diffusion.hf.space/file=/tmp/gradio/aae4affbedeaf257ce81d92e014f68d082029e43b7e0b8b7bc13b0caa1b76059/c7004360-b2b2-4ca4-8a6e-0b4be993bb54.jpg",
+            "size": null,
+            "orig_name": "c7004360-b2b2-4ca4-8a6e-0b4be993bb54.jpg",
+            "mime_type": null,
+            "is_stream": false,
+            "meta": {
+              "_type": "gradio.FileData"
+            }
+          },
+          "caption": null
+        },
+        {
+          "image": {
+            "path": "/tmp/gradio/fee46e6b72b05b48dc4412aaf0021922443a96f9f8596b57ea2d81dfe11bc96d/0db3575a-5cc5-4c57-94b1-a7a02331ea8c.jpg",
+            "url": "https://stabilityai-stable-diffusion.hf.space/file=/tmp/gradio/fee46e6b72b05b48dc4412aaf0021922443a96f9f8596b57ea2d81dfe11bc96d/0db3575a-5cc5-4c57-94b1-a7a02331ea8c.jpg",
+            "size": null,
+            "orig_name": "0db3575a-5cc5-4c57-94b1-a7a02331ea8c.jpg",
+            "mime_type": null,
+            "is_stream": false,
+            "meta": {
+              "_type": "gradio.FileData"
+            }
+          },
+          "caption": null
+        },
+        {
+          "image": {
+            "path": "/tmp/gradio/0bcd32195e66ba050b85943abb13a04322df66f01674158fd47e70fefe74f1c6/3cb19880-dc13-40f4-8299-5d7ada5d87a5.jpg",
+            "url": "https://stabilityai-stable-diffusion.hf.space/file=/tmp/gradio/0bcd32195e66ba050b85943abb13a04322df66f01674158fd47e70fefe74f1c6/3cb19880-dc13-40f4-8299-5d7ada5d87a5.jpg",
+            "size": null,
+            "orig_name": "3cb19880-dc13-40f4-8299-5d7ada5d87a5.jpg",
+            "mime_type": null,
+            "is_stream": false,
+            "meta": {
+              "_type": "gradio.FileData"
+            }
+          },
+          "caption": null
+        }
+      ]
+    ]
+  },
+  {
+    "midjourney": [
+      [
+        {
+          "image": {
+            "path": "/tmp/gradio/893ad693dadc67f690401eda7e95c21c1337cb17/8bceacb1-4f52-4a88-bb1c-23f0eefd9f2c.png",
+            "url": "https://ijohn07-midjourney.hf.space/file=/tmp/gradio/893ad693dadc67f690401eda7e95c21c1337cb17/8bceacb1-4f52-4a88-bb1c-23f0eefd9f2c.png",
+            "size": null,
+            "orig_name": "8bceacb1-4f52-4a88-bb1c-23f0eefd9f2c.png",
+            "mime_type": null,
+            "is_stream": false,
+            "meta": {
+              "_type": "gradio.FileData"
+            }
+          },
+          "caption": null
+        },
+        {
+          "image": {
+            "path": "/tmp/gradio/7162e44de69b76439ef18e2c45cc38e443083668/3417d988-4ca3-4b90-8d6a-f9d8ead6c3bd.png",
+            "url": "https://ijohn07-midjourney.hf.space/file=/tmp/gradio/7162e44de69b76439ef18e2c45cc38e443083668/3417d988-4ca3-4b90-8d6a-f9d8ead6c3bd.png",
+            "size": null,
+            "orig_name": "3417d988-4ca3-4b90-8d6a-f9d8ead6c3bd.png",
+            "mime_type": null,
+            "is_stream": false,
+            "meta": {
+              "_type": "gradio.FileData"
+            }
+          },
+          "caption": null
+        }
+      ],
+      1604799069
+    ]
+  }
+]
