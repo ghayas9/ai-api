@@ -19,7 +19,7 @@ app.get("/", async (req, res) => {
     })
 })
 
-app.use("/api/v1/image", image)
+// app.use("/api/v1/image", image)
 
 // Helper function to fetch image from URL and convert to blob
 async function fetchImageAsBlob(imageUrl) {
@@ -716,6 +716,277 @@ app.post('/video/generate', async (req, res) => {
             success: false,
             error: err.message,
             message: 'Video generation failed'
+        });
+    }
+});
+
+
+// POST endpoint for Veo 3 video generation (Text-to-Video with Audio)
+app.get('/video/veo3/generate', async (req, res) => {
+    try {
+        // Check if prompt was provided
+        // if (!req.body.prompt) {
+        //     return res.status(400).json({
+        //         success: false,
+        //         error: 'No prompt provided',
+        //         message: 'Please provide a prompt for video generation in the request body'
+        //     });
+        // }
+
+        // const { prompt } = req.body;
+
+        const prompt = "A close up of two people staring at a cryptic drawing on a wall, torchlight flickering. A man murmurs, 'This must be it. That's the secret code.' The woman looks at him and whispering excitedly, 'What did you find?'"
+
+        // Get parameters from request body with defaults
+        const aspectRatio = req.body.aspectRatio || "16:9";
+        const negativePrompt = req.body.negativePrompt || "";
+        const personGeneration = req.body.personGeneration || "allow_all";
+
+        console.log('Starting Veo 3 video generation...');
+        console.log('Prompt:', prompt);
+
+        // Initialize Google Generative AI client
+        const { GoogleGenAI } = require('@google/genai');
+        const ai = new GoogleGenAI({
+            apiKey: "AIzaSyC5tBpUw1yt7L6xDgC0_nuFNhSXToHnmnQ" || process.env.GOOGLE_API_KEY || req.headers['x-google-api-key']
+        });
+
+        // Start video generation
+        let operation = await ai.models.generateVideos({
+            model: "veo-3.0-generate-preview",
+            prompt: prompt,
+            config: {
+                aspectRatio: aspectRatio,
+                negativePrompt: negativePrompt,
+                personGeneration: personGeneration
+            }
+        });
+
+        console.log('Video generation started. Operation name:', operation.name);
+
+        // Poll until video is ready
+        operation = await pollVideoOperation(ai, operation);
+
+        console.log('Video generation completed!');
+
+        // Download the generated video
+        const generatedVideo = operation.response.generatedVideos[0];
+
+        // Get the video URL or data
+        const videoUrl = generatedVideo.video.uri || generatedVideo.video.url;
+
+        // Return the result
+        res.json({
+            success: true,
+            data: {
+                videoUrl: videoUrl,
+                video: generatedVideo.video,
+                operationName: operation.name
+            },
+            parameters: {
+                prompt: prompt,
+                aspectRatio: aspectRatio,
+                negativePrompt: negativePrompt,
+                personGeneration: personGeneration
+            },
+            message: 'Video generated successfully with Veo 3',
+            note: 'Video will be available for 2 days. Download it to save permanently.'
+        });
+
+    } catch (err) {
+        console.error('Error in Veo 3 video generation:', err);
+        res.status(500).json({
+            success: false,
+            error: err.message,
+            message: 'Veo 3 video generation failed',
+            details: err.toString()
+        });
+    }
+});
+
+
+app.post('/video/ltx/generate', async (req, res) => {
+    try {
+        if (!req.body.prompt) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide a prompt'
+            });
+        }
+
+        const { prompt } = req.body;
+
+        // Get parameters with defaults from API docs
+        const negative_prompt = req.body.negative_prompt || "worst quality, inconsistent motion, blurry, jittery, distorted";
+        const duration_ui = req.body.duration || 8.5;  // 0.3 to 8.5 seconds
+        const height_ui = req.body.height || 512;
+        const width_ui = req.body.width || 704;
+        const seed_ui = req.body.seed || 42;
+        const randomize_seed = req.body.randomize_seed !== undefined ? req.body.randomize_seed : true;
+
+        console.log('Starting LTX-Video generation...');
+        console.log('Prompt:', prompt);
+        console.log('Duration:', duration_ui, 'seconds');
+
+        const { Client } = await import('@gradio/client');
+
+        const client = await Client.connect("Lightricks/ltx-video-distilled", {
+            hf_token: HUGGINGFACE_API_KEY
+        });
+
+        console.log('Connected to LTX-Video space');
+
+        const result = await client.predict("/text_to_video", {
+            prompt: prompt,
+            negative_prompt: negative_prompt,
+            input_image_filepath: "",
+            input_video_filepath: "",
+            height_ui: height_ui,
+            width_ui: width_ui,
+            mode: "text-to-video",
+            duration_ui: duration_ui,
+            ui_frames_to_use: 9,
+            seed_ui: seed_ui,
+            randomize_seed: randomize_seed,
+            ui_guidance_scale: 1,
+            improve_texture_flag: true
+        });
+
+        console.log('LTX-Video generation completed');
+
+        res.json({
+            success: true,
+            data: {
+                ...result.data,
+                url: result?.data?.[0]?.video?.url
+
+            },
+            parameters: {
+                prompt,
+                negative_prompt,
+                duration: duration_ui,
+                height: height_ui,
+                width: width_ui,
+                seed: result.data[1]
+            },
+            message: 'Video generated successfully with LTX-Video (FREE!)',
+            model: 'Lightricks LTX-Video 0.9.8 Distilled'
+        });
+
+    } catch (err) {
+        console.error('Error in LTX-Video generation:', err);
+        res.status(500).json({
+            success: false,
+            error: err.message,
+            message: 'LTX-Video generation failed'
+        });
+    }
+});
+
+app.post('/video/cogvideo/generate', async (req, res) => {
+    try {
+        if (!req.body.prompt) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide a prompt'
+            });
+        }
+
+        const { prompt } = req.body;
+
+
+        // Optional parameters
+        const seed_value = req.body.seed || -1;  // -1 for random
+        const scale_status = req.body.superResolution || false;  // Super-resolution
+        const rife_status = req.body.frameInterpolation || false;  // Frame interpolation
+        const video_strength = req.body.videoStrength || 0.8;  // For I2V/V2V
+
+        console.log('Starting CogVideoX generation...');
+        console.log('Prompt:', prompt);
+
+        const { Client } = await import('@gradio/client');
+
+        const client = await Client.connect("zai-org/CogVideoX-5B-Space", {
+            hf_token: HUGGINGFACE_API_KEY
+        });
+
+        console.log('Connected to CogVideoX space');
+
+        // For text-to-video, image_input and video_input should be null
+        const result = await client.predict("/generate", {
+            prompt: prompt,
+            image_input: null,  // null for text-to-video
+            video_input: null,  // null for text-to-video
+            video_strength: video_strength,
+            seed_value: seed_value,
+            scale_status: scale_status,
+            rife_status: rife_status
+        });
+
+        console.log('CogVideoX generation completed');
+
+        // Result returns: [video, download_video, download_gif, seed_used]
+        res.json({
+            success: true,
+            data: result?.data,
+            parameters: {
+                prompt,
+                seed: result.data[3],
+                superResolution: scale_status,
+                frameInterpolation: rife_status
+            },
+            message: 'Video generated successfully with CogVideoX-5B (FREE!)',
+            model: 'THUDM CogVideoX-5B'
+        });
+
+    } catch (err) {
+        console.error('Error in CogVideoX generation:', err);
+        res.status(500).json({
+            success: false,
+            error: err.message,
+            message: 'CogVideoX generation failed'
+        });
+    }
+});
+app.get('/svg/generate', async (req, res) => {
+    try {
+        // if (!req.body.prompt) {
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: 'Please provide a prompt'
+        //     });
+        // }
+
+        // const { prompt } = req.body;
+
+        const prompt = "The SVG presents a minimalist side view of a sailboat with a single sail. The boat hull is colored dark blue, and the sail is a lighter blue with a triangular shape filled with a subtle wave pattern. The boat is floating on a thin, curved green line symbolizing water. The overall design is simple and stylized."
+
+        console.log('Starting SVG generation...');
+        console.log('Prompt:', prompt);
+
+        const { Client } = await import('@gradio/client');
+
+        const client = await Client.connect("Caffin/SVGThinker-7B", {
+            hf_token: HUGGINGFACE_API_KEY
+        });
+
+
+        const result = await client.predict("/gradio_text_to_svg", {
+            text_description: prompt,
+        });
+
+        res.json({
+            success: true,
+            data: result?.data,
+            message: 'SVG generated successfully',
+        });
+
+    } catch (err) {
+        console.error('Error in generation:', err);
+        res.status(500).json({
+            success: false,
+            error: err.message,
+            message: ' generation failed'
         });
     }
 });
